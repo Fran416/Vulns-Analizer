@@ -1,3 +1,12 @@
+"""
+    Miner de repositorios de PrefectHQ. Este script se encarga de:
+    1. Obtener los repositorios activos de la organización PrefectHQ en GitHub.
+    2. Clonar cada repositorio y generar su SBOM utilizando Syft.
+    3. Analizar el SBOM con Grype para identificar vulnerabilidades.
+    4. Guardar los resultados en formato JSON en un directorio específico.
+"""
+
+
 import os
 import subprocess
 import requests
@@ -8,6 +17,13 @@ RESULTS_DIR = "../results"
 
 
 def obtener_repos():
+    """
+    Filtra los reopositorios para obtener solo los que han tenido actividad en el último mes. 
+    Además, se limita a los 50 repositorios más activos para optimizar el proceso.
+
+    @return: Lista de nombres de repositorios activos.
+    
+    """
     print(f"Obteniendo repositorios activos de {ORG}...")
     url = f"https://api.github.com/orgs/{ORG}/repos?per_page=100&sort=pushed"
     
@@ -32,6 +48,12 @@ def obtener_repos():
 
 
 def ejecutar_herramientas(repo_name):
+    """
+    Clona el repositorio, genera su SBOM con Syft y luego busca vulnerabilidades con Grype.
+
+    @param repo_name: Nombre del repositorio a analizar.
+    @return: None
+    """
     repo_url = f"https://github.com/{ORG}/{repo_name}.git"
     destino = f"./temp_{repo_name}"
 
@@ -53,6 +75,9 @@ def ejecutar_herramientas(repo_name):
 
 
 if __name__ == "__main__":
+    """
+    Punto de entrada del programa. Crea el directorio de resultados, obtiene los repositorios activos y ejecuta las herramientas para cada uno.
+    """
     os.makedirs(RESULTS_DIR, exist_ok=True)
     lista = obtener_repos()
     for repo in lista:
