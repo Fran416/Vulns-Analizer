@@ -57,29 +57,18 @@ def ejecutar_herramientas(repo_name):
     repo_url = f"https://github.com/{ORG}/{repo_name}.git"
     destino = f"./temp_{repo_name}"
 
-    print(f"\nAnalizando: {repo_name}\n")
+    print(f"Analizando: {repo_name}")
 
-    subprocess.run(["git", "clone", "--depth", "1", repo_url, destino])
+    subprocess.run(["git", "clone", "--depth", "1", repo_url, destino], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # Syft (Genera SBOM)
     print("   Generando SBOM...")
-    subprocess.run(["syft", destino, "-o", "json", "--file", f"{RESULTS_DIR}/{repo_name}_sbom.json"])
+    subprocess.run(["syft", destino, "-o", "json", "--file", f"{RESULTS_DIR}/{repo_name}_sbom.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # 3. Grype (Busca vulnerabilidades)
     print("   Buscando vulnerabilidades...")
     subprocess.run(["grype", f"sbom:{RESULTS_DIR}/{repo_name}_sbom.json", "-o", "json", "--file",
-                    f"{RESULTS_DIR}/{repo_name}_vulns.json"])
+                    f"{RESULTS_DIR}/{repo_name}_vulns.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     
     subprocess.run(["rm", "-rf", destino])
-
-
-if __name__ == "__main__":
-    """
-    Punto de entrada del programa. Crea el directorio de resultados, obtiene los repositorios activos y ejecuta las herramientas para cada uno.
-    """
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    lista = obtener_repos()
-    for repo in lista:
-        ejecutar_herramientas(repo)
-    print("\nProceso finalizado.")
