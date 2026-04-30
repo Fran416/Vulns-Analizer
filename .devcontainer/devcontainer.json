@@ -3,7 +3,7 @@
     "build": { "dockerfile": "Dockerfile" },
     "customizations": {
         "vscode": {
-            "extensions": ["ms-python.python", "ms-toolsai.jupyter"]
+            "extensions": ["ms-python.python", "ms-toolsai.jupyter", "zricethezav.gitleaks"]
         }
     }
 }
