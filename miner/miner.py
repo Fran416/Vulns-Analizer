@@ -70,5 +70,25 @@ def ejecutar_herramientas(repo_name):
     subprocess.run(["grype", f"sbom:{RESULTS_DIR}/{repo_name}_sbom.json", "-o", "json", "--file",
                     f"{RESULTS_DIR}/{repo_name}_vulns.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    
+    buscar_secretos(repo_name, destino)
+
+     # Limpieza: Eliminamos la carpeta temporal del repositorio clonado para ahorrar espacio.   
+
     subprocess.run(["rm", "-rf", destino])
+
+
+def buscar_secretos(repo_name, destino):
+    """
+    Ejecuta Gitleaks sobre el repositorio clonado para identificar exposición de secretos.
+    """
+    print("   Buscando exposición de secretos (Gitleaks)...")
+    output_file = f"{RESULTS_DIR}/{repo_name}_secrets.json"
+
+    # Ejecutamos gitleaks detect sobre la carpeta temporal
+    subprocess.run([
+        "gitleaks", "detect",
+        "--source", destino,
+        "--report-format", "json",
+        "--report-path", output_file,
+        "--exit-code", "0"  # Para que el script no se detenga si encuentra secretos
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
