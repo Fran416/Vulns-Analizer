@@ -13,7 +13,8 @@ import requests
 from datetime import datetime, timedelta
 
 ORG = "PrefectHQ"
-RESULTS_DIR = "../results"
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
 
 def obtener_repos():
@@ -49,26 +50,130 @@ def obtener_repos():
 
 def ejecutar_herramientas(repo_name):
     """
-    Clona el repositorio, genera su SBOM con Syft y luego busca vulnerabilidades con Grype.
+    Clona el repositorio, genera su SBOM con Syft, busca vulnerabilidades con Grype
+    y luego ejecuta CodeQL.
 
     @param repo_name: Nombre del repositorio a analizar.
     @return: None
     """
     repo_url = f"https://github.com/{ORG}/{repo_name}.git"
     destino = f"./temp_{repo_name}"
+    db_path = f"./db_{repo_name}" 
 
     print(f"Analizando: {repo_name}")
 
-    subprocess.run(["git", "clone", "--depth", "1", repo_url, destino], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    clone_result = subprocess.run(
+        ["git", "clone", "--depth", "1", repo_url, destino],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if clone_result.returncode != 0:
+        print(f"   [!] Git clone failed for {repo_name}: {clone_result.stderr.strip()}")
+        return
 
-    # Syft (Genera SBOM)
-    print("   Generando SBOM...")
-    subprocess.run(["syft", destino, "-o", "json", "--file", f"{RESULTS_DIR}/{repo_name}_sbom.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    sbom_file = generar_sbom(repo_name, destino)
+    if sbom_file is None:
+        subprocess.run(["rm", "-rf", destino])
+        return
 
-    # 3. Grype (Busca vulnerabilidades)
-    print("   Buscando vulnerabilidades...")
-    subprocess.run(["grype", f"sbom:{RESULTS_DIR}/{repo_name}_sbom.json", "-o", "json", "--file",
-                    f"{RESULTS_DIR}/{repo_name}_vulns.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    vuln_file = buscar_vulnerabilidades(repo_name, destino)
+    if vuln_file is None:
+        subprocess.run(["rm", "-rf", destino])
+        return
 
-    
+    analizar_con_codeql(repo_name, destino, db_path)
+
     subprocess.run(["rm", "-rf", destino])
+    if os.path.exists(db_path):
+        subprocess.run(["rm", "-rf", db_path])
+
+
+def generar_sbom(repo_name, fuente):
+    print("   Generando SBOM...")
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    sbom_file = os.path.join(RESULTS_DIR, f"{repo_name}_sbom.json")
+    try:
+        with open(sbom_file, "w", encoding="utf-8") as out:
+            subprocess.run(
+                ["syft", fuente, "-o", "json"],
+                check=True,
+                stdout=out,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        print(f"   SBOM escrito en: {sbom_file}")
+        return sbom_file
+    except subprocess.CalledProcessError as e:
+        print(f"   [!] Syft error para {repo_name}: {e}")
+        if e.stderr:
+            print(f"   stderr:\n{e.stderr}")
+        return None
+
+
+def buscar_vulnerabilidades(repo_name, fuente):
+    print("   Buscando vulnerabilidades...")
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    vuln_file = os.path.join(RESULTS_DIR, f"{repo_name}_vulns.json")
+    try:
+        with open(vuln_file, "w", encoding="utf-8") as out:
+            subprocess.run(
+                ["grype", fuente, "-o", "json"],
+                check=True,
+                stdout=out,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        print(f"   Vulnerabilidades escrito en: {vuln_file}")
+        return vuln_file
+    except subprocess.CalledProcessError as e:
+        print(f"   [!] Grype error para {repo_name}: {e}")
+        if e.stderr:
+            print(f"   stderr:\n{e.stderr}")
+        return None
+
+
+def analizar_con_codeql(repo_name, fuente, db_path):
+    """
+    Intenta crear una base de datos y analizar el código fuente
+    probando primero con Python y luego con JavaScript/TypeScript.
+    """
+    output_file = f"{RESULTS_DIR}/{repo_name}_codeql.sarif"
+    
+    # Definimos los lenguajes a intentar según el stack de Prefect
+    # 'javascript' en CodeQL cubre automáticamente TypeScript
+    lenguajes_a_probar = ["python", "javascript"]
+    
+    for lang in lenguajes_a_probar:
+        print(f"   Intentando CodeQL con lenguaje: {lang}...")
+        try:
+            # A. Intentar crear la base de datos
+            subprocess.run([
+                "codeql", "database", "create", db_path,
+                f"--language={lang}",
+                "--source-root", fuente,
+                "--overwrite"
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            # B. Ejecutar el análisis si la creación tuvo éxito
+            # Nota: Usamos paquetes de consultas generales para mayor cobertura
+            query_suite = f"{lang}-code-scanning.qls" if lang == "python" else "javascript-code-scanning.qls"
+            
+            subprocess.run([
+                "codeql", "database", "analyze", db_path,
+                query_suite, 
+                "--format=sarif-latest", 
+                f"--output={output_file}"
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            print(f"   [+] CodeQL finalizado con éxito ({lang}). Reporte: {output_file}")
+            return True # Éxito, salimos de la función
+
+        except subprocess.CalledProcessError:
+            # Si falla, limpiamos la base de datos corrupta para el siguiente intento
+            if os.path.exists(db_path):
+                subprocess.run(["rm", "-rf", db_path])
+            continue # Probar con el siguiente lenguaje
+
+    print(f"   [!] No se pudo generar reporte de CodeQL para {repo_name} (No se detectó código Py/JS)")
+    return False
