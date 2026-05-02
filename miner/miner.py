@@ -11,6 +11,7 @@ import os
 import subprocess
 import requests
 from datetime import datetime, timedelta
+from dataset import generar_dataset_final
 
 ORG = "PrefectHQ"
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -69,7 +70,7 @@ def ejecutar_herramientas(repo_name):
         text=True,
     )
     if clone_result.returncode != 0:
-        print(f"   [!] Git clone failed for {repo_name}: {clone_result.stderr.strip()}")
+        print(f" Git clone failed for {repo_name}: {clone_result.stderr.strip()}")
         return
 
     sbom_file = generar_sbom(repo_name, destino)
@@ -105,7 +106,7 @@ def generar_sbom(repo_name, fuente):
         print(f"   SBOM escrito en: {sbom_file}")
         return sbom_file
     except subprocess.CalledProcessError as e:
-        print(f"   [!] Syft error para {repo_name}: {e}")
+        print(f" Syft error para {repo_name}: {e}")
         if e.stderr:
             print(f"   stderr:\n{e.stderr}")
         return None
@@ -127,7 +128,7 @@ def buscar_vulnerabilidades(repo_name, fuente):
         print(f"   Vulnerabilidades escrito en: {vuln_file}")
         return vuln_file
     except subprocess.CalledProcessError as e:
-        print(f"   [!] Grype error para {repo_name}: {e}")
+        print(f" Grype error para {repo_name}: {e}")
         if e.stderr:
             print(f"   stderr:\n{e.stderr}")
         return None
@@ -139,15 +140,12 @@ def analizar_con_codeql(repo_name, fuente, db_path):
     probando primero con Python y luego con JavaScript/TypeScript.
     """
     output_file = f"{RESULTS_DIR}/{repo_name}_codeql.sarif"
-    
-    # Definimos los lenguajes a intentar según el stack de Prefect
-    # 'javascript' en CodeQL cubre automáticamente TypeScript
+
     lenguajes_a_probar = ["python", "javascript"]
     
     for lang in lenguajes_a_probar:
         print(f"   Intentando CodeQL con lenguaje: {lang}...")
         try:
-            # A. Intentar crear la base de datos
             subprocess.run([
                 "codeql", "database", "create", db_path,
                 f"--language={lang}",
@@ -155,8 +153,6 @@ def analizar_con_codeql(repo_name, fuente, db_path):
                 "--overwrite"
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-            # B. Ejecutar el análisis si la creación tuvo éxito
-            # Nota: Usamos paquetes de consultas generales para mayor cobertura
             query_suite = f"{lang}-code-scanning.qls" if lang == "python" else "javascript-code-scanning.qls"
             
             subprocess.run([
@@ -167,13 +163,13 @@ def analizar_con_codeql(repo_name, fuente, db_path):
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
             print(f"   [+] CodeQL finalizado con éxito ({lang}). Reporte: {output_file}")
-            return True # Éxito, salimos de la función
+            return True
 
         except subprocess.CalledProcessError:
-            # Si falla, limpiamos la base de datos corrupta para el siguiente intento
+
             if os.path.exists(db_path):
                 subprocess.run(["rm", "-rf", db_path])
-            continue # Probar con el siguiente lenguaje
+            continue
 
-    print(f"   [!] No se pudo generar reporte de CodeQL para {repo_name} (No se detectó código Py/JS)")
+    print(f" No se pudo generar reporte de CodeQL para {repo_name} (No se detectó código Py/JS)")
     return False
