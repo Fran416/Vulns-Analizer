@@ -47,7 +47,7 @@ temp_*/
 # Analysis outputs - generated at runtime
 results/*.json
 results/*.csv
-
+results/*.sarif
 # Environment variables
 .env
 .env.local
