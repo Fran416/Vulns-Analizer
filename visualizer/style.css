@@ -1,0 +1,83 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #0d1117;
+    color: #c9d1d9;
+}
+
+header {
+    background-color: #161b22;
+    padding: 20px 40px;
+    border-bottom: 1px solid #30363d;
+}
+
+header h1 {
+    font-size: 1.8rem;
+    color: #58a6ff;
+}
+
+header p {
+    color: #8b949e;
+    margin-top: 5px;
+}
+
+main {
+    padding: 30px 40px;
+}
+
+/* Tarjetas de resumen */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.card h3 {
+    font-size: 0.9rem;
+    color: #8b949e;
+    margin-bottom: 10px;
+}
+
+.card p {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #58a6ff;
+}
+
+#card-critical p {
+    color: #f85149;
+}
+
+/* Gráficos */
+.charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.chart-box {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.chart-box h2 {
+    font-size: 1rem;
+    color: #8b949e;
+    margin-bottom: 15px;
+}

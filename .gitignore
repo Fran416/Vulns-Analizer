@@ -59,3 +59,5 @@ Thumbs.db
 # Agent and plugin files
 AGENTS.md
 .opencode/
+notebooks/db_*/
+db_*/
