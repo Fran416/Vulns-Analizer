@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SBOM Analyzer - Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Chart.js desde CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -16,7 +15,6 @@
     </header>
 
     <main>
-        <!-- Tarjetas de resumen -->
         <section class="cards">
             <div class="card" id="card-repos">
                 <h3>Repositorios</h3>
@@ -36,7 +34,6 @@
             </div>
         </section>
 
-        <!-- Gráficos -->
         <section class="charts">
             <div class="chart-box">
                 <h2>Distribución de Severidades</h2>
@@ -53,6 +50,15 @@
             <div class="chart-box">
                 <h2>Ecosistema Predominante</h2>
                 <canvas id="chartEcosistema"></canvas>
+            </div>
+            
+            <div class="chart-box">
+                <h2>Composición Tecnológica por Repo</h2>
+                <canvas id="chartDistribucionEco"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2>Nivel de Amenaza por Ecosistema</h2>
+                <canvas id="chartRiesgoPorEcosistema"></canvas>
             </div>
         </section>
     </main>

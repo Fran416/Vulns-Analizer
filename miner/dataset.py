@@ -44,14 +44,13 @@ def extraer_metricas_codeql(ruta_sarif):
         return 0
 
 
-def obtener_ecosistema_desde_sbom(ruta_sbom):
+def obtener_ecosistemas_desde_sbom(ruta_sbom):
     """
-    Basado en el Notebook 02_analisis_dependencias.ipynb:
-    Lee el SBOM, cuenta los tipos de componentes ('python', 'npm', etc.)
-    y devuelve el ecosistema predominante.
+    Lee el SBOM y devuelve tanto el ecosistema predominante 
+    como el desglose exacto de dependencias.
     """
     if not os.path.exists(ruta_sbom) or os.path.getsize(ruta_sbom) == 0:
-        return "Desconocido"
+        return {"primary": "Desconocido", "breakdown": {}}
         
     try:
         with open(ruta_sbom, 'r', encoding='utf-8') as f:
@@ -59,20 +58,23 @@ def obtener_ecosistema_desde_sbom(ruta_sbom):
             
         artifacts = data.get('artifacts', [])
         if not artifacts:
-            return "Desconocido"
+            return {"primary": "Desconocido", "breakdown": {}}
             
-        # Contar la cantidad de componentes por ecosistema (type)
         conteo_tipos = {}
         for artifact in artifacts:
             tipo = artifact.get('type', 'Desconocido')
             conteo_tipos[tipo] = conteo_tipos.get(tipo, 0) + 1
             
-        # Retornar el tipo con más dependencias (ej. 'python' o 'npm')
         ecosistema_principal = max(conteo_tipos, key=conteo_tipos.get)
-        return ecosistema_principal
+        
+        # Retornamos un diccionario enriquecido
+        return {
+            "primary": ecosistema_principal,
+            "breakdown": conteo_tipos
+        }
         
     except Exception:
-        return "Desconocido"
+        return {"primary": "Desconocido", "breakdown": {}}
 
 
 def generar_dataset_final():
@@ -93,18 +95,23 @@ def generar_dataset_final():
         metrics_grype = extraer_metricas_grype(archivo)
 
         # 2. Datos de CodeQL
-        sarif_path = os.path.join(RESULTS_DIR, f"{repo_name}_codeql.sarif")
-        metrics_codeql = extraer_metricas_codeql(sarif_path)
+# 2. Datos de CodeQL (Multi-lenguaje)
+        total_sast_alerts = 0
+        # Buscamos todos los archivos SARIF de este repo sin importar el lenguaje
+        archivos_sarif = glob.glob(os.path.join(RESULTS_DIR, f"{repo_name}_*_codeql.sarif"))
+        
+        for sarif_path in archivos_sarif:
+            total_sast_alerts += extraer_metricas_codeql(sarif_path)
         
         # 3. Datos del Ecosistema desde el SBOM (Lógica del Notebook)
         sbom_path = os.path.join(RESULTS_DIR, f"{repo_name}_sbom.json")
-        ecosistema = obtener_ecosistema_desde_sbom(sbom_path)
+        ecosistema = obtener_ecosistemas_desde_sbom(sbom_path)
 
         resumen.append({
             "repository": repo_name,
             "ecosystem": ecosistema,  # <--- Agregamos el ecosistema aquí
             "sca_metrics": metrics_grype,
-            "sast_alerts": metrics_codeql,
+            "sast_alerts": total_sast_alerts,
             "timestamp": datetime.now().isoformat()
         })
 
