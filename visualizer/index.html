@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBOM Analyzer - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>🔐 SBOM Analyzer Dashboard</h1>
+        <p>Análisis de vulnerabilidades — Organización: PrefectHQ</p>
+    </header>
+
+    <main>
+        <section class="cards">
+            <div class="card" id="card-repos">
+                <h3>Repositorios</h3>
+                <p id="total-repos">-</p>
+            </div>
+            <div class="card" id="card-vulns">
+                <h3>Vulnerabilidades</h3>
+                <p id="total-vulns">-</p>
+            </div>
+            <div class="card" id="card-critical">
+                <h3>Críticas</h3>
+                <p id="total-critical">-</p>
+            </div>
+            <div class="card" id="card-score">
+                <h3>Risk Score Total</h3>
+                <p id="total-score">-</p>
+            </div>
+        </section>
+
+        <section class="charts">
+            <div class="chart-box">
+                <h2>Distribución de Severidades</h2>
+                <canvas id="chartSeveridad"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2>Risk Score por Repositorio</h2>
+                <canvas id="chartRiskScore"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2>Vulnerabilidades por Repositorio</h2>
+                <canvas id="chartVulnsPorRepo"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2>Ecosistema Predominante</h2>
+                <canvas id="chartEcosistema"></canvas>
+            </div>
+            
+            <div class="chart-box">
+                <h2>Composición Tecnológica por Repo</h2>
+                <canvas id="chartDistribucionEco"></canvas>
+            </div>
+            <div class="chart-box">
+                <h2>Nivel de Amenaza por Ecosistema</h2>
+                <canvas id="chartRiesgoPorEcosistema"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

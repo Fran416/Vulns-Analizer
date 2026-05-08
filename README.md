@@ -1,50 +1,116 @@
 # SBOM Analyzer
-Proyecto centrado en analizar repositorios activos de una organizacion, PerfectHQ para este caso.
 
-## Como ejecutar
+Herramienta para detectar, analizar y visualizar vulnerabilidades en repositorios
+de software open source. Desarrollada para analizar la organizacion **PrefectHQ**.
 
-### Prerrequisitos
+## Arquitectura
+
+El sistema se divide en tres componentes con responsabilidades bien definidas:
+
+    miner/        -> Extraccion de vulnerabilidades (Syft + Grype + CodeQL)
+    analyzer/     -> Generacion de analisis automatizado con metricas relevantes
+    notebooks/    -> Analisis exploratorio y cuantitativo
+    visualizer/   -> Dashboard interactivo de resultados
+
+### Decisiones de diseno
+
+**1. Pipeline secuencial en el Miner**
+El miner ejecuta Syft primero para generar el SBOM, luego Grype para analizar
+dependencias y finalmente CodeQL para analisis estatico. Este orden es intencional:
+CodeQL usa el SBOM para detectar los lenguajes presentes en el repositorio.
+
+**2. JSON como formato de intercambio**
+Los tres componentes se comunican mediante archivos JSON en results/.
+Esto permite desacoplar los componentes: el miner produce datos,
+el analyzer los consume y el visualizer los presenta.
+
+**3. Risk Score ponderado**
+El analyzer calcula un puntaje de riesgo por repositorio usando pesos matematicos:
+- Critical: 10 puntos
+- High: 5 puntos
+- Medium: 2 puntos
+- Low: 1 punto
+- SAST (CodeQL): 3 puntos
+
+**4. Dev Containers para reproducibilidad**
+Todo el entorno esta definido en Docker, incluyendo Syft, Grype, CodeQL,
+Node.js y Python. Cualquier persona puede reproducir el analisis sin
+configuraciones adicionales.
+
+## Prerrequisitos
 
 - Docker
 - VSCode
-- Extension Dev Containers de "Docker" en VSCode
+- Extension Dev Containers de VSCode
 
-### Clonar
+## Como ejecutar
 
-- Para ejecutar el proyecto debes clonar el repositorio:
-`
+### 1. Clonar el repositorio
+
 git clone https://github.com/Fran416/SBOM-Analyzer.git
-cd SBOM-Analyzer 
-`
+cd SBOM-Analyzer
 
-- Abrir el repositorio en VSCode:
-`code .`
+### 2. Abrir en Dev Container
 
-### Reconstruir en un contenedor:
-- En VSCode presiona `ctrl + shitft + p` (para Mac: `Cmd + shitft + p`)
+code .
 
-- Escribe y selecciona: `Dev Containers: Rebuild and Reopen in Container` abrir como Dev
+Presiona Ctrl+Shift+P y selecciona:
+Dev Containers: Rebuild and Reopen in Container
 
-- Container
+### 3. Configurar el Kernel
 
-Con esto VSCode ejecutara el proyecto en un contenedor Docker donde tendras todas las librerias y dependencias necesarias para este proyecto
+Al abrir cualquier notebook .ipynb selecciona:
+- Select Another Environment
+- Python Environments
+- Python 3.11.15
 
-### Configurar el Kernel
+### 4. Ejecutar los notebooks en orden
 
-- Abrir cualquier Notebook (archivos terminados en `.ipynb`)
+Notebook                              | Descripcion
+01_ejecutar_miner.ipynb               | Ejecuta el pipeline completo (Syft + Grype + CodeQL)
+02_analisis_dependencias.ipynb        | Analisis de dependencias y vulnerabilidades
+03_ejecutar_dataset_analyzer.ipynb    | Genera dataset consolidado y risk scores
 
--Al tratar de ejecutra por primera vez selecciona:
-`Select Another Enviroment`
-`Python Enviroments`
-`Python 3.11.15`
+NOTA: El notebook 01 puede tardar hasta 2 horas por el analisis de CodeQL.
 
-### Ejecutar
+### 5. Ejecutar el Visualizer
 
-Para replicar el projecto, utiliza los notebooks presentes en la carpeta `notebooks`, siendo el `00_ejecutar_proyecto.ipynb` la base para crear lo antes dicho en el README.md, por ende la ejecucion de codigo comienza desde el `01_ejecutar_miner.ipynb`.
+python3 -m http.server 8080
 
+Abre en el navegador: http://localhost:8080/visualizer/
 
-## Estudiantes 
+## Componentes
 
-- Benjamín Garcés -> BenjaG123
+### Miner (miner/)
+
+- miner.py -> Pipeline principal: clona repos, ejecuta Syft, Grype y CodeQL
+- dataset.py -> Consolida resultados en summary_prefect.json
+- analizer.py -> Calcula risk scores y genera detailed_analysis.json
+
+### Analyzer (notebooks/)
+
+- Analisis cuantitativo de dependencias por ecosistema
+- Distribucion de vulnerabilidades por severidad
+- Identificacion de repositorios mas riesgosos
+
+### Visualizer (visualizer/)
+
+- Dashboard interactivo con Chart.js
+- Distribucion de severidades
+- Risk score por repositorio
+- Comparacion de vulnerabilidades entre repositorios
+
+## Resultados generados
+
+Archivo                | Descripcion
+*_sbom.json            | SBOM generado por Syft
+*_vulns.json           | Vulnerabilidades detectadas por Grype
+*_codeql.sarif         | Alertas de analisis estatico de CodeQL
+summary_prefect.json   | Dataset consolidado
+detailed_analysis.json | Analisis con risk scores
+
+## Estudiantes
+
+- Benjamin Garces -> BenjaG123
 - Francisco Lizama -> Fran416
-- Nicolás Sandoval -> NicolasSandovalll
+- Nicolas Sandoval -> NicolasSandovalll

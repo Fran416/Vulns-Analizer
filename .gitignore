@@ -47,7 +47,7 @@ temp_*/
 # Analysis outputs - generated at runtime
 results/*.json
 results/*.csv
-
+results/*.sarif
 # Environment variables
 .env
 .env.local
@@ -59,3 +59,5 @@ Thumbs.db
 # Agent and plugin files
 AGENTS.md
 .opencode/
+notebooks/db_*/
+db_*/
