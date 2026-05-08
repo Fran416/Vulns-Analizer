@@ -8,6 +8,7 @@ de software open source. Desarrollada para analizar la organizacion **PrefectHQ*
 El sistema se divide en tres componentes con responsabilidades bien definidas:
 
     miner/        -> Extraccion de vulnerabilidades (Syft + Grype + CodeQL)
+    analyzer/     -> Generacion de analisis automatizado con metricas relevantes
     notebooks/    -> Analisis exploratorio y cuantitativo
     visualizer/   -> Dashboard interactivo de resultados
 
